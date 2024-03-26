@@ -1,57 +1,32 @@
-const Joi = require("joi");
+const { Category, validate } = require("../models/category");
 const express = require("express");
 const router = express.Router();
 
-const categories = [
-    { id: 1, title: "Morning" },
-    { id: 2, title: "Night" },
-];
-
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
+    const categories = await Category.find().sort("title");
     res.send(categories);
 });
 
-router.post("/", (req, res) => {
-    const { error } = validateCategory(req.body);
+router.post("/", async (req, res) => {
+    const { error } = validate(req.body);
     if (error) return res.status(400).send(error.details[0].message);
 
-    const category = {
-        id: categories.length + 1,
-        name: req.body.title,
-    };
-    categories.push(category);
+    let category = new Category({ title: req.body.title });
+    category = await category.save();
     res.send(category);
 });
 
-router.put("/:id", (req, res) => {
-    const category = categories.find((c) => c.id === parseInt(req.params.id));
-    if (!category)
-        return res
-            .status(404)
-            .send("The category with the given ID was not found.");
-
-    const { error } = validateCategory(req.body);
+router.put("/:id", async (req, res) => {
+    const { error } = validate(req.body);
     if (error) return res.status(400).send(error.details[0].message);
 
-    category.title = req.body.title;
-    res.send(category);
-});
-
-router.delete("/:id", (req, res) => {
-    const category = categories.find((c) => c.id === parseInt(req.params.id));
-    if (!category)
-        return res
-            .status(404)
-            .send("The category with the given ID was not found.");
-
-    const index = categories.indexOf(category);
-    categories.splice(index, 1);
-
-    res.send(category);
-});
-
-router.get("/:id", (req, res) => {
-    const category = categories.find((c) => c.id === parseInt(req.params.id));
+    const category = await Category.findByIdAndUpdate(
+        req.params.id,
+        {
+            title: req.body.title,
+        },
+        { new: true }
+    );
     if (!category)
         return res
             .status(404)
@@ -59,11 +34,22 @@ router.get("/:id", (req, res) => {
     res.send(category);
 });
 
-function validateCategory(category) {
-    const schema = Joi.object({
-        title: Joi.string().min(3).max(30).required(),
-    });
-    return schema.validate(category);
-}
+router.delete("/:id", async (req, res) => {
+    const category = await Category.findByIdAndDelete(req.params.id);
+    if (!category)
+        return res
+            .status(404)
+            .send("The category with the given ID was not found.");
+    res.send(category);
+});
+
+router.get("/:id", async (req, res) => {
+    const category = await Category.findById(req.params.id);
+    if (!category)
+        return res
+            .status(404)
+            .send("The category with the given ID was not found.");
+    res.send(category);
+});
 
 module.exports = router;
