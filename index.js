@@ -1,3 +1,4 @@
+const Joi = require('joi');
 const express = require("express");
 
 const app = express();
@@ -24,15 +25,15 @@ app.get("/api/courses/:id", (req, res) => {
     res.send(course);
 });
 
-app.get("/api/courses/:year/:month", (req, res) => {
-    res.send(req.params);
-});
-
-app.get("/api/posts/:year/:month", (req, res) => {
-    res.send(req.query);
-});
-
 app.post('/api/courses', (req, res) => {
+    const schema = Joi.object({
+        title: Joi.string().min(3).max(30).required()
+    })
+    const result = schema.validate(req.body);
+    if(result.error) {
+        res.status(400).send(result.error);
+        return;
+    }
     const course = {
         id: courses.length + 1,
         title: req.body.title
